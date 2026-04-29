@@ -1,6 +1,6 @@
 # Box of Combats
 
-A Library of Ruina-style combat overlay application for Windows. Built with Electron and WebSockets. Designed to run as an always-on-top overlay during gaming sessions.
+Built with Electron and WebSockets. Designed to run as an always-on-top overlay during gaming sessions.
 
 ## Prerequisites
 
