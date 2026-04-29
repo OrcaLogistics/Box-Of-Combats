@@ -1,0 +1,14 @@
+{
+  "name": "box-of-combats",
+  "version": "1.0.0",
+  "description": "Box of Combats — Library of Ruina-style combat overlay for Windows",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "server": "node server.js"
+  },
+  "dependencies": {
+    "electron": "^28.1.0",
+    "ws": "^8.16.0"
+  }
+}

@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Box of Combats</title>
+<style>
+/* ─── Reset & Base ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 12px;
+  color: #999;
+  background: #1a1a1a;
+  user-select: none;
+}
+
+/* ─── Titlebar ─────────────────────────────────────────────────────── */
+#titlebar {
+  height: 28px;
+  background: #151515;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  -webkit-app-region: drag;
+  border-bottom: 1px solid #2a2a2a;
+}
+#titlebar .title { font-size: 11px; color: #666; flex: 1; }
+#titlebar .btn {
+  -webkit-app-region: no-drag;
+  background: none; border: none; color: #555;
+  font-size: 14px; cursor: pointer; padding: 0 6px;
+  line-height: 28px;
+}
+#titlebar .btn:hover { color: #999; }
+
+/* ─── Screens ──────────────────────────────────────────────────────── */
+.screen { display: none; height: calc(100% - 28px); overflow: hidden; }
+.screen.active { display: flex; flex-direction: column; }
+
+/* ─── Main Menu ────────────────────────────────────────────────────── */
+#screen-menu {
+  justify-content: center; align-items: center; gap: 16px;
+}
+#screen-menu h1 { color: #777; font-size: 20px; font-weight: 400; letter-spacing: 2px; }
+#screen-menu .subtitle { color: #555; font-size: 11px; margin-bottom: 20px; }
+.menu-btn {
+  background: #222; border: 1px solid #333; color: #999;
+  padding: 10px 32px; font-size: 13px; cursor: pointer;
+  font-family: inherit; width: 200px; text-align: center;
+}
+.menu-btn:hover { background: #282828; border-color: #444; color: #aaa; }
+
+/* ─── Common Controls ──────────────────────────────────────────────── */
+button, .btn-sm {
+  background: #252525; border: 1px solid #333; color: #888;
+  padding: 4px 10px; font-size: 11px; cursor: pointer;
+  font-family: inherit;
+}
+button:hover, .btn-sm:hover { background: #2a2a2a; border-color: #444; color: #aaa; }
+button:disabled { opacity: 0.4; cursor: default; }
+input, select, textarea {
+  background: #222; border: 1px solid #333; color: #aaa;
+  padding: 4px 6px; font-size: 11px; font-family: inherit;
+  outline: none;
+}
+input:focus, select:focus, textarea:focus { border-color: #555; }
+label { color: #777; font-size: 11px; display: block; margin-bottom: 2px; }
+.row { display: flex; gap: 6px; align-items: center; }
+.row-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
+.spacer { flex: 1; }
+.muted { color: #555; }
+.small { font-size: 10px; }
+.scroll { overflow-y: auto; flex: 1; }
+.section-title {
+  font-size: 11px; color: #666; border-bottom: 1px solid #2a2a2a;
+  padding: 4px 0; margin: 8px 0 6px;
+}
+.card {
+  background: #1e1e1e; border: 1px solid #2a2a2a;
+  padding: 6px 8px; margin-bottom: 4px;
+}
+.card:hover { border-color: #333; }
+.card.selected { border-color: #555; }
+.back-link {
+  color: #555; font-size: 11px; cursor: pointer;
+  padding: 6px 10px; border-bottom: 1px solid #2a2a2a;
+}
+.back-link:hover { color: #888; }
+
+/* ─── Workshop ─────────────────────────────────────────────────────── */
+#screen-workshop { flex-direction: row; }
+#ws-list {
+  width: 180px; border-right: 1px solid #2a2a2a;
+  display: flex; flex-direction: column;
+}
+#ws-list .header {
+  padding: 6px 8px; border-bottom: 1px solid #2a2a2a;
+  display: flex; justify-content: space-between; align-items: center;
+}
+#ws-list .items { flex: 1; overflow-y: auto; padding: 4px; }
+.persona-item {
+  padding: 5px 8px; cursor: pointer; font-size: 11px;
+  border: 1px solid transparent; margin-bottom: 2px;
+}
+.persona-item:hover { background: #222; }
+.persona-item.active { border-color: #444; background: #252525; }
+.persona-item .active-badge { color: #6a8; font-size: 9px; }
+#ws-editor { flex: 1; padding: 8px; overflow-y: auto; }
+#ws-editor .field { margin-bottom: 6px; }
+#ws-editor input[type="text"], #ws-editor input[type="number"] { width: 100%; }
+#ws-editor .inline-fields { display: flex; gap: 6px; }
+#ws-editor .inline-fields > div { flex: 1; }
+
+/* Move editor */
+.move-card {
+  background: #1e1e1e; border: 1px solid #2a2a2a;
+  padding: 6px 8px; margin-bottom: 4px;
+}
+.move-card .move-header {
+  display: flex; justify-content: space-between; align-items: center;
+  cursor: pointer;
+}
+.move-card .move-header .move-title { font-size: 11px; color: #aaa; }
+.move-card .move-header .move-type { font-size: 10px; color: #666; }
+.move-card .move-body { display: none; margin-top: 6px; }
+.move-card.expanded .move-body { display: block; }
+.die-row {
+  display: flex; gap: 4px; align-items: center;
+  padding: 3px 0; border-bottom: 1px solid #222;
+}
+.die-row input { width: 40px; }
+.die-row select { width: 60px; }
+.passive-row {
+  background: #1c1c1c; border: 1px solid #272727;
+  padding: 4px 6px; margin-bottom: 3px; font-size: 10px;
+}
+
+/* ─── Lobby ────────────────────────────────────────────────────────── */
+#screen-lobby { flex-direction: column; }
+#lobby-connect {
+  padding: 8px 10px; border-bottom: 1px solid #2a2a2a;
+  display: flex; gap: 6px; align-items: center;
+}
+#lobby-list { flex: 1; overflow-y: auto; padding: 8px; }
+.fight-item {
+  padding: 6px 8px; border: 1px solid #2a2a2a;
+  margin-bottom: 4px; display: flex; justify-content: space-between;
+  align-items: center; background: #1e1e1e;
+}
+.fight-item:hover { border-color: #333; }
+#lobby-create {
+  padding: 8px 10px; border-top: 1px solid #2a2a2a;
+  display: flex; gap: 6px; align-items: center;
+}
+
+/* ─── Fight Room ───────────────────────────────────────────────────── */
+#screen-fight { flex-direction: column; }
+#fight-header {
+  padding: 6px 10px; border-bottom: 1px solid #2a2a2a;
+  display: flex; justify-content: space-between; align-items: center;
+}
+#fight-header .phase-badge {
+  font-size: 10px; padding: 2px 6px;
+  border: 1px solid #333; color: #777;
+}
+#fight-body { flex: 1; display: flex; overflow: hidden; }
+#fight-sides { flex: 1; display: flex; overflow: hidden; }
+.fight-side {
+  flex: 1; padding: 6px; overflow-y: auto;
+  border-right: 1px solid #2a2a2a;
+}
+.fight-side:last-child { border-right: none; }
+.side-label {
+  font-size: 10px; color: #555; text-align: center;
+  padding: 2px; border-bottom: 1px solid #222; margin-bottom: 4px;
+}
+
+/* Participant cards */
+.participant-card {
+  background: #1e1e1e; border: 1px solid #2a2a2a;
+  padding: 5px 7px; margin-bottom: 4px; font-size: 11px;
+}
+.participant-card.dead { opacity: 0.4; }
+.participant-card.staggered { border-color: #5a4a20; }
+.pc-name { color: #aaa; font-size: 11px; margin-bottom: 3px; }
+.pc-name .host-tag { color: #555; font-size: 9px; }
+.pc-name .status-tag { font-size: 9px; }
+.bar-container { height: 8px; background: #222; margin-bottom: 2px; position: relative; }
+.bar-fill { height: 100%; transition: width 0.3s; }
+.bar-label {
+  position: absolute; top: 0; left: 4px;
+  font-size: 8px; color: #ccc; line-height: 8px;
+}
+.hp-fill { background: #4a7a4a; }
+.hp-fill.low { background: #7a6a3a; }
+.hp-fill.critical { background: #7a4a4a; }
+.stagger-fill { background: #7a6a3a; }
+.status-row { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 2px; }
+.status-badge {
+  font-size: 9px; padding: 1px 4px;
+  border: 1px solid #333; color: #777;
+}
+
+/* Fight actions */
+#fight-actions {
+  padding: 6px 10px; border-top: 1px solid #2a2a2a;
+  min-height: 40px;
+}
+#fight-actions .action-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+/* Combat log */
+#fight-log-container {
+  width: 280px; border-left: 1px solid #2a2a2a;
+  display: flex; flex-direction: column;
+}
+#fight-log-header {
+  padding: 4px 8px; border-bottom: 1px solid #2a2a2a;
+  font-size: 10px; color: #555;
+}
+#fight-log {
+  flex: 1; overflow-y: auto; padding: 4px 8px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 10px; line-height: 1.4; color: #666;
+}
+#fight-log .log-entry { padding: 1px 0; }
+#fight-log .log-entry.highlight { color: #888; }
+#fight-log .log-entry.damage { color: #886; }
+#fight-log .log-entry.death { color: #866; }
+#fight-log .log-entry.round-header { color: #777; border-top: 1px solid #272727; padding-top: 4px; margin-top: 4px; }
+
+/* Declaration panel */
+#decl-panel { display: none; }
+#decl-panel.active { display: block; }
+#decl-panel .decl-title { font-size: 11px; color: #888; margin-bottom: 6px; }
+#decl-panel select { min-width: 120px; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #1a1a1a; }
+::-webkit-scrollbar-thumb { background: #333; }
+::-webkit-scrollbar-thumb:hover { background: #444; }
+
+/* Error toast */
+#toast {
+  display: none; position: fixed; bottom: 40px; left: 50%;
+  transform: translateX(-50%); background: #2a2020;
+  border: 1px solid #443030; color: #a88; padding: 6px 14px;
+  font-size: 11px; z-index: 100;
+}
+#toast.show { display: block; }
+</style>
+</head>
+<body>
+
+<!-- ─── Titlebar ─────────────────────────────────────────────────── -->
+<div id="titlebar">
+  <span class="title">Box of Combats</span>
+  <button class="btn" onclick="electronAPI.minimizeApp()">─</button>
+  <button class="btn" onclick="electronAPI.closeApp()">✕</button>
+</div>
+
+<!-- ─── Toast ────────────────────────────────────────────────────── -->
+<div id="toast"></div>
+
+<!-- ═══ MAIN MENU ════════════════════════════════════════════════════ -->
+<div id="screen-menu" class="screen active">
+  <h1>BOX OF COMBATS</h1>
+  <div class="subtitle">build 1-ish</div>
+  <button class="menu-btn" onclick="showScreen('workshop')">Persona Workshop</button>
+  <button class="menu-btn" onclick="showScreen('lobby')">Fight Lobby</button>
+</div>
+
+<!-- ═══ PERSONA WORKSHOP ═════════════════════════════════════════════ -->
+<div id="screen-workshop" class="screen">
+  <div class="back-link" onclick="showScreen('menu')">← Main Menu</div>
+  <div style="display:flex;flex:1;overflow:hidden;">
+    <div id="ws-list">
+      <div class="header">
+        <span style="color:#777;font-size:11px;">Personas</span>
+        <button onclick="createPersona()" style="font-size:10px;">+ New</button>
+      </div>
+      <div class="items" id="persona-list"></div>
+    </div>
+    <div id="ws-editor">
+      <div id="editor-placeholder" style="color:#555;padding:20px;text-align:center;">
+        Select or create a persona to begin editing.
+      </div>
+      <div id="editor-form" style="display:none;">
+        <div class="field">
+          <label>Persona Name</label>
+          <input type="text" id="ed-name" onchange="saveCurrentPersona()">
+        </div>
+        <div class="inline-fields">
+          <div class="field">
+            <label>HP</label>
+            <input type="number" id="ed-hp" min="1" onchange="saveCurrentPersona()">
+          </div>
+          <div class="field">
+            <label>Stagger Threshold</label>
+            <input type="number" id="ed-stagger" min="1" onchange="saveCurrentPersona()">
+          </div>
+          <div class="field">
+            <label>Move Slots (1-3)</label>
+            <input type="number" id="ed-slots" min="1" max="3" onchange="saveCurrentPersona()">
+          </div>
+        </div>
+        <div class="inline-fields">
+          <div class="field">
+            <label>Speed Min</label>
+            <input type="number" id="ed-spdmin" min="1" onchange="saveCurrentPersona()">
+          </div>
+          <div class="field">
+            <label>Speed Max</label>
+            <input type="number" id="ed-spdmax" min="1" onchange="saveCurrentPersona()">
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+          <button onclick="setActivePersona()" id="btn-set-active" style="font-size:10px;">Set as Active</button>
+          <button onclick="deleteCurrentPersona()" style="font-size:10px;color:#866;">Delete</button>
+        </div>
+
+        <!-- Persona Passives -->
+        <div class="section-title">
+          Passives
+          <button onclick="addPersonaPassive()" style="float:right;font-size:9px;padding:1px 6px;">+ Add</button>
+        </div>
+        <div id="persona-passives"></div>
+
+        <!-- Moves -->
+        <div class="section-title">
+          Moves (max 6)
+          <button onclick="addMove()" style="float:right;font-size:9px;padding:1px 6px;">+ Add Move</button>
+        </div>
+        <div id="move-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FIGHT LOBBY ══════════════════════════════════════════════════ -->
+<div id="screen-lobby" class="screen">
+  <div class="back-link" onclick="leaveLobby()">← Main Menu</div>
+  <div id="lobby-connect">
+    <label style="display:inline;margin:0;">Server:</label>
+    <input type="text" id="lobby-addr" value="ws://localhost:9120" style="width:160px;">
+    <label style="display:inline;margin:0;">Name:</label>
+    <input type="text" id="lobby-username" placeholder="Your name" style="width:100px;">
+    <button onclick="connectToServer()" id="btn-connect">Connect</button>
+    <span id="conn-status" class="muted small"></span>
+  </div>
+  <div id="lobby-list">
+    <div style="color:#555;padding:20px;text-align:center;" id="lobby-empty">
+      Connect to a server to see available fights.
+    </div>
+    <div id="lobby-fights"></div>
+  </div>
+  <div id="lobby-create">
+    <input type="text" id="fight-name-input" placeholder="Fight name" style="width:160px;">
+    <button onclick="createFight()" id="btn-create-fight" disabled>Create Fight</button>
+    <span class="muted small" id="active-persona-label"></span>
+  </div>
+</div>
+
+<!-- ═══ FIGHT ROOM ═══════════════════════════════════════════════════ -->
+<div id="screen-fight" class="screen">
+  <div id="fight-header">
+    <div>
+      <span id="fight-title" style="color:#888;font-size:12px;"></span>
+      <span class="muted small" id="fight-round"></span>
+    </div>
+    <div class="row" style="gap:4px;">
+      <span class="phase-badge" id="fight-phase"></span>
+      <button onclick="leaveFight()" style="font-size:10px;">Leave</button>
+    </div>
+  </div>
+  <div id="fight-body">
+    <div id="fight-sides">
+      <div class="fight-side" id="side-left">
+        <div class="side-label">LEFT</div>
+        <div id="cards-left"></div>
+      </div>
+      <div class="fight-side" id="side-right">
+        <div class="side-label">RIGHT</div>
+        <div id="cards-right"></div>
+      </div>
+    </div>
+    <div id="fight-log-container">
+      <div id="fight-log-header">Combat Log</div>
+      <div id="fight-log"></div>
+    </div>
+  </div>
+  <div id="fight-actions">
+    <div class="action-row" id="action-content"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<script>
+// ─── State ───────────────────────────────────────────────────────────
+let currentScreen = 'menu';
+let personas = [];
+let currentPersonaIdx = -1;
+let activePersonaIdx = -1;
+let ws = null;
+let playerId = null;
+let currentFightId = null;
+let fightState = null;
+let myDeclTurn = null;    // { slotIndex, speedValue } if it's our turn
+
+// ─── Screen Nav ──────────────────────────────────────────────────────
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  currentScreen = name;
+  if (name === 'workshop') renderPersonaList();
+  if (name === 'lobby') updateLobbyUI();
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ─── Persona Storage ─────────────────────────────────────────────────
+async function loadPersonas() {
+  try {
+    const data = await electronAPI.loadPersonas();
+    if (data && data.personas) {
+      personas = data.personas;
+      activePersonaIdx = data.activeIndex ?? -1;
+    }
+  } catch(e) { personas = []; }
+}
+
+function savePersonas() {
+  electronAPI.savePersonas({ personas, activeIndex: activePersonaIdx });
+}
+
+function createPersona() {
+  const p = {
+    name: 'New Persona',
+    hp: 50,
+    staggerThreshold: 20,
+    speedRange: [3, 6],
+    moveSlots: 1,
+    passives: [],
+    moves: []
+  };
+  personas.push(p);
+  currentPersonaIdx = personas.length - 1;
+  savePersonas();
+  renderPersonaList();
+  renderPersonaEditor();
+}
+
+function selectPersona(idx) {
+  currentPersonaIdx = idx;
+  renderPersonaList();
+  renderPersonaEditor();
+}
+
+function deleteCurrentPersona() {
+  if (currentPersonaIdx < 0) return;
+  if (!confirm('Delete this persona?')) return;
+  personas.splice(currentPersonaIdx, 1);
+  if (activePersonaIdx === currentPersonaIdx) activePersonaIdx = -1;
+  else if (activePersonaIdx > currentPersonaIdx) activePersonaIdx--;
+  currentPersonaIdx = -1;
+  savePersonas();
+  renderPersonaList();
+  document.getElementById('editor-form').style.display = 'none';
+  document.getElementById('editor-placeholder').style.display = 'block';
+}
+
+function setActivePersona() {
+  if (currentPersonaIdx < 0) return;
+  activePersonaIdx = currentPersonaIdx;
+  savePersonas();
+  renderPersonaList();
+  toast('Active persona set: ' + personas[activePersonaIdx].name);
+}
+
+function saveCurrentPersona() {
+  if (currentPersonaIdx < 0) return;
+  const p = personas[currentPersonaIdx];
+  p.name = document.getElementById('ed-name').value || 'Unnamed';
+  p.hp = parseInt(document.getElementById('ed-hp').value) || 50;
+  p.staggerThreshold = parseInt(document.getElementById('ed-stagger').value) || 20;
+  p.moveSlots = Math.max(1, Math.min(3, parseInt(document.getElementById('ed-slots').value) || 1));
+  p.speedRange = [
+    parseInt(document.getElementById('ed-spdmin').value) || 1,
+    parseInt(document.getElementById('ed-spdmax').value) || 6
+  ];
+  savePersonas();
+  renderPersonaList();
+}
+
+// ─── Render Persona List ─────────────────────────────────────────────
+function renderPersonaList() {
+  const el = document.getElementById('persona-list');
+  el.innerHTML = '';
+  personas.forEach((p, i) => {
+    const div = document.createElement('div');
+    div.className = 'persona-item' + (i === currentPersonaIdx ? ' active' : '');
+    div.innerHTML = `${p.name} ${i === activePersonaIdx ? '<span class="active-badge">[active]</span>' : ''}`;
+    div.onclick = () => selectPersona(i);
+    el.appendChild(div);
+  });
+}
+
+// ─── Render Persona Editor ───────────────────────────────────────────
+function renderPersonaEditor() {
+  if (currentPersonaIdx < 0) return;
+  document.getElementById('editor-placeholder').style.display = 'none';
+  document.getElementById('editor-form').style.display = 'block';
+
+  const p = personas[currentPersonaIdx];
+  document.getElementById('ed-name').value = p.name;
+  document.getElementById('ed-hp').value = p.hp;
+  document.getElementById('ed-stagger').value = p.staggerThreshold;
+  document.getElementById('ed-slots').value = p.moveSlots;
+  document.getElementById('ed-spdmin').value = p.speedRange[0];
+  document.getElementById('ed-spdmax').value = p.speedRange[1];
+
+  renderPersonaPassives();
+  renderMoveList();
+}
+
+// ─── Persona Passives ────────────────────────────────────────────────
+function addPersonaPassive() {
+  if (currentPersonaIdx < 0) return;
+  personas[currentPersonaIdx].passives.push({
+    name: 'New Passive',
+    description: '',
+    triggerCondition: '',
+    effect: { type: 'apply_status', statusEffect: 'bleed', amount: 1, target: 'enemy' }
+  });
+  savePersonas();
+  renderPersonaPassives();
+}
+
+function renderPersonaPassives() {
+  const el = document.getElementById('persona-passives');
+  if (currentPersonaIdx < 0) { el.innerHTML = ''; return; }
+  const passives = personas[currentPersonaIdx].passives || [];
+  el.innerHTML = '';
+  passives.forEach((pv, i) => {
+    const div = document.createElement('div');
+    div.className = 'passive-row';
+    div.innerHTML = `
+      <div class="row" style="margin-bottom:3px;">
+        <input type="text" value="${esc(pv.name)}" style="flex:1;" onchange="updatePersonaPassive(${i},'name',this.value)">
+        <button onclick="removePersonaPassive(${i})" style="font-size:9px;padding:1px 4px;color:#866;">x</button>
+      </div>
+      <div style="margin-bottom:2px;">
+        <input type="text" value="${esc(pv.description)}" placeholder="Description" style="width:100%;" onchange="updatePersonaPassive(${i},'description',this.value)">
+      </div>
+      <div style="margin-bottom:2px;">
+        <input type="text" value="${esc(pv.triggerCondition)}" placeholder="Trigger (e.g. On Stagger)" style="width:100%;" onchange="updatePersonaPassive(${i},'triggerCondition',this.value)">
+      </div>
+      <div class="row">
+        <select onchange="updatePersonaPassiveEffect(${i},'type',this.value)">
+          <option value="apply_status" ${pv.effect?.type==='apply_status'?'selected':''}>Apply Status</option>
+          <option value="heal" ${pv.effect?.type==='heal'?'selected':''}>Heal</option>
+          <option value="damage" ${pv.effect?.type==='damage'?'selected':''}>Damage</option>
+          <option value="stagger" ${pv.effect?.type==='stagger'?'selected':''}>Stagger</option>
+          <option value="modify_roll" ${pv.effect?.type==='modify_roll'?'selected':''}>Modify Roll</option>
+        </select>
+        <select onchange="updatePersonaPassiveEffect(${i},'statusEffect',this.value)">
+          <option value="bleed" ${pv.effect?.statusEffect==='bleed'?'selected':''}>Bleed</option>
+          <option value="burn" ${pv.effect?.statusEffect==='burn'?'selected':''}>Burn</option>
+          <option value="tremor" ${pv.effect?.statusEffect==='tremor'?'selected':''}>Tremor</option>
+          <option value="poise" ${pv.effect?.statusEffect==='poise'?'selected':''}>Poise</option>
+          <option value="charge" ${pv.effect?.statusEffect==='charge'?'selected':''}>Charge</option>
+        </select>
+        <input type="number" value="${pv.effect?.amount||1}" style="width:40px;" onchange="updatePersonaPassiveEffect(${i},'amount',parseInt(this.value))">
+        <select onchange="updatePersonaPassiveEffect(${i},'target',this.value)">
+          <option value="enemy" ${pv.effect?.target==='enemy'?'selected':''}>Enemy</option>
+          <option value="self" ${pv.effect?.target==='self'?'selected':''}>Self</option>
+        </select>
+      </div>
+    `;
+    el.appendChild(div);
+  });
+}
+
+function updatePersonaPassive(i, field, val) {
+  if (currentPersonaIdx < 0) return;
+  personas[currentPersonaIdx].passives[i][field] = val;
+  savePersonas();
+}
+
+function updatePersonaPassiveEffect(i, field, val) {
+  if (currentPersonaIdx < 0) return;
+  if (!personas[currentPersonaIdx].passives[i].effect) {
+    personas[currentPersonaIdx].passives[i].effect = {};
+  }
+  personas[currentPersonaIdx].passives[i].effect[field] = val;
+  savePersonas();
+}
+
+function removePersonaPassive(i) {
+  if (currentPersonaIdx < 0) return;
+  personas[currentPersonaIdx].passives.splice(i, 1);
+  savePersonas();
+  renderPersonaPassives();
+}
+
+// ─── Move List ───────────────────────────────────────────────────────
+function addMove() {
+  if (currentPersonaIdx < 0) return;
+  const p = personas[currentPersonaIdx];
+  if ((p.moves || []).length >= 6) { toast('Max 6 moves'); return; }
+  if (!p.moves) p.moves = [];
+  p.moves.push({
+    name: 'New Move',
+    type: 'Attack',
+    dice: [{ min: 1, max: 4, damageType: 'Slash', onHitEffect: null }],
+    onHitPassives: [],
+    onUsePassives: []
+  });
+  savePersonas();
+  renderMoveList();
+}
+
+function renderMoveList() {
+  const el = document.getElementById('move-list');
+  if (currentPersonaIdx < 0) { el.innerHTML = ''; return; }
+  const moves = personas[currentPersonaIdx].moves || [];
+  el.innerHTML = '';
+  moves.forEach((m, mi) => {
+    const div = document.createElement('div');
+    div.className = 'move-card';
+    div.id = 'move-' + mi;
+
+    // Type color hints
+    const typeHint = m.type === 'Attack' ? '#8a7a6a' :
+                     m.type === 'Counter' ? '#8a8a7a' :
+                     m.type === 'Dodge' ? '#6a7a8a' : '#6a8a7a';
+
+    div.innerHTML = `
+      <div class="move-header" onclick="toggleMove(${mi})">
+        <span class="move-title" style="color:${typeHint}">${esc(m.name)}</span>
+        <span class="move-type">${m.type} (${(m.dice||[]).length} dice)</span>
+      </div>
+      <div class="move-body">
+        <div class="field">
+          <label>Name</label>
+          <input type="text" value="${esc(m.name)}" onchange="updateMove(${mi},'name',this.value)">
+        </div>
+        <div class="field">
+          <label>Type</label>
+          <select onchange="updateMove(${mi},'type',this.value)">
+            <option value="Attack" ${m.type==='Attack'?'selected':''}>Attack</option>
+            <option value="Dodge" ${m.type==='Dodge'?'selected':''}>Dodge</option>
+            <option value="Block" ${m.type==='Block'?'selected':''}>Block</option>
+            <option value="Counter" ${m.type==='Counter'?'selected':''}>Counter</option>
+          </select>
+        </div>
+        <div class="section-title" style="font-size:10px;">
+          Dice
+          <button onclick="addDie(${mi})" style="float:right;font-size:9px;padding:1px 4px;">+ Die</button>
+        </div>
+        <div id="dice-list-${mi}"></div>
+        <div class="section-title" style="font-size:10px;">
+          On-Hit Passives
+          <button onclick="addMovePassive(${mi},'onHitPassives')" style="float:right;font-size:9px;padding:1px 4px;">+ Add</button>
+        </div>
+        <div id="onhit-list-${mi}"></div>
+        <div class="section-title" style="font-size:10px;">
+          On-Use Passives
+          <button onclick="addMovePassive(${mi},'onUsePassives')" style="float:right;font-size:9px;padding:1px 4px;">+ Add</button>
+        </div>
+        <div id="onuse-list-${mi}"></div>
+        <div style="margin-top:4px;">
+          <button onclick="removeMove(${mi})" style="font-size:9px;color:#866;">Delete Move</button>
+        </div>
+      </div>
+    `;
+    el.appendChild(div);
+    renderDiceList(mi);
+    renderMovePassives(mi, 'onHitPassives');
+    renderMovePassives(mi, 'onUsePassives');
+  });
+}
+
+function toggleMove(mi) {
+  const el = document.getElementById('move-' + mi);
+  if (el) el.classList.toggle('expanded');
+}
+
+function updateMove(mi, field, val) {
+  if (currentPersonaIdx < 0) return;
+  personas[currentPersonaIdx].moves[mi][field] = val;
+  savePersonas();
+  renderMoveList();
+}
+
+function removeMove(mi) {
+  if (currentPersonaIdx < 0) return;
+  personas[currentPersonaIdx].moves.splice(mi, 1);
+  savePersonas();
+  renderMoveList();
+}
+
+// ─── Dice Editor ─────────────────────────────────────────────────────
+function addDie(mi) {
+  if (currentPersonaIdx < 0) return;
+  const m = personas[currentPersonaIdx].moves[mi];
+  if (!m.dice) m.dice = [];
+  m.dice.push({ min: 1, max: 4, damageType: 'Slash', onHitEffect: null });
+  savePersonas();
+  renderDiceList(mi);
+}
+
+function renderDiceList(mi) {
+  const el = document.getElementById('dice-list-' + mi);
+  if (!el) return;
+  const m = personas[currentPersonaIdx].moves[mi];
+  const dice = m.dice || [];
+  el.innerHTML = '';
+  dice.forEach((d, di) => {
+    const row = document.createElement('div');
+    row.className = 'die-row';
+    row.innerHTML = `
+      <span class="muted" style="font-size:9px;">#${di+1}</span>
+      <input type="number" value="${d.min}" title="Min" onchange="updateDie(${mi},${di},'min',parseInt(this.value))">
+      <span class="muted">-</span>
+      <input type="number" value="${d.max}" title="Max" onchange="updateDie(${mi},${di},'max',parseInt(this.value))">
+      <select onchange="updateDie(${mi},${di},'damageType',this.value)" style="width:55px;">
+        <option value="Slash" ${d.damageType==='Slash'?'selected':''}>Slash</option>
+        <option value="Pierce" ${d.damageType==='Pierce'?'selected':''}>Pierce</option>
+        <option value="Blunt" ${d.damageType==='Blunt'?'selected':''}>Blunt</option>
+      </select>
+      <select onchange="updateDieEffect(${mi},${di},this.value)" style="width:55px;" title="On-hit effect">
+        <option value="" ${!d.onHitEffect?'selected':''}>None</option>
+        <option value="bleed" ${d.onHitEffect?.statusEffect==='bleed'?'selected':''}>Bleed</option>
+        <option value="burn" ${d.onHitEffect?.statusEffect==='burn'?'selected':''}>Burn</option>
+        <option value="tremor" ${d.onHitEffect?.statusEffect==='tremor'?'selected':''}>Tremor</option>
+        <option value="poise" ${d.onHitEffect?.statusEffect==='poise'?'selected':''}>Poise</option>
+        <option value="charge" ${d.onHitEffect?.statusEffect==='charge'?'selected':''}>Charge</option>
+      </select>
+      <button onclick="removeDie(${mi},${di})" style="font-size:9px;padding:1px 4px;color:#866;">x</button>
+    `;
+    el.appendChild(row);
+  });
+}
+
+function updateDie(mi, di, field, val) {
+  if (currentPersonaIdx < 0) return;
+  personas[currentPersonaIdx].moves[mi].dice[di][field] = val;
+  savePersonas();
+}
+
+function updateDieEffect(mi, di, val) {
+  if (currentPersonaIdx < 0) return;
+  if (!val) {
+    personas[currentPersonaIdx].moves[mi].dice[di].onHitEffect = null;
+  } else {
+    personas[currentPersonaIdx].moves[mi].dice[di].onHitEffect = {
+      statusEffect: val, amount: 1, target: 'enemy'
+    };
+  }
+  savePersonas();
+}
+
+function removeDie(mi, di) {
+  if (currentPersonaIdx < 0) return;
+  personas[currentPersonaIdx].moves[mi].dice.splice(di, 1);
+  savePersonas();
+  renderDiceList(mi);
+}
+
+// ─── Move Passives ───────────────────────────────────────────────────
+function addMovePassive(mi, listName) {
+  if (currentPersonaIdx < 0) return;
+  const m = personas[currentPersonaIdx].moves[mi];
+  if (!m[listName]) m[listName] = [];
+  m[listName].push({
+    name: 'Passive',
+    description: '',
+    effect: { type: 'apply_status', statusEffect: 'bleed', amount: 1, target: 'enemy' }
+  });
+  savePersonas();
+  renderMovePassives(mi, listName);
+}
+
+function renderMovePassives(mi, listName) {
+  const prefix = listName === 'onHitPassives' ? 'onhit' : 'onuse';
+  const el = document.getElementById(prefix + '-list-' + mi);
+  if (!el) return;
+  const m = personas[currentPersonaIdx].moves[mi];
+  const list = m[listName] || [];
+  el.innerHTML = '';
+  list.forEach((pv, pi) => {
+    const row = document.createElement('div');
+    row.className = 'passive-row';
+    row.innerHTML = `
+      <div class="row" style="margin-bottom:2px;">
+        <input type="text" value="${esc(pv.name)}" style="flex:1;" onchange="updateMovePassive(${mi},'${listName}',${pi},'name',this.value)">
+        <button onclick="removeMovePassive(${mi},'${listName}',${pi})" style="font-size:9px;padding:1px 4px;color:#866;">x</button>
+      </div>
+      <div class="row">
+        <select onchange="updateMovePassiveEffect(${mi},'${listName}',${pi},'type',this.value)">
+          <option value="apply_status" ${pv.effect?.type==='apply_status'?'selected':''}>Apply Status</option>
+          <option value="heal" ${pv.effect?.type==='heal'?'selected':''}>Heal</option>
+          <option value="damage" ${pv.effect?.type==='damage'?'selected':''}>Damage</option>
+        </select>
+        <select onchange="updateMovePassiveEffect(${mi},'${listName}',${pi},'statusEffect',this.value)">
+          <option value="bleed" ${pv.effect?.statusEffect==='bleed'?'selected':''}>Bleed</option>
+          <option value="burn" ${pv.effect?.statusEffect==='burn'?'selected':''}>Burn</option>
+          <option value="tremor" ${pv.effect?.statusEffect==='tremor'?'selected':''}>Tremor</option>
+          <option value="poise" ${pv.effect?.statusEffect==='poise'?'selected':''}>Poise</option>
+          <option value="charge" ${pv.effect?.statusEffect==='charge'?'selected':''}>Charge</option>
+        </select>
+        <input type="number" value="${pv.effect?.amount||1}" style="width:35px;" onchange="updateMovePassiveEffect(${mi},'${listName}',${pi},'amount',parseInt(this.value))">
+        <select onchange="updateMovePassiveEffect(${mi},'${listName}',${pi},'target',this.value)">
+          <option value="enemy" ${pv.effect?.target==='enemy'?'selected':''}>Enemy</option>
+          <option value="self" ${pv.effect?.target==='self'?'selected':''}>Self</option>
+        </select>
+      </div>
+    `;
+    el.appendChild(row);
+  });
+}
+
+function updateMovePassive(mi, listName, pi, field, val) {
+  if (currentPersonaIdx < 0) return;
+  personas[currentPersonaIdx].moves[mi][listName][pi][field] = val;
+  savePersonas();
+}
+
+function updateMovePassiveEffect(mi, listName, pi, field, val) {
+  if (currentPersonaIdx < 0) return;
+  const pv = personas[currentPersonaIdx].moves[mi][listName][pi];
+  if (!pv.effect) pv.effect = {};
+  pv.effect[field] = val;
+  savePersonas();
+}
+
+function removeMovePassive(mi, listName, pi) {
+  if (currentPersonaIdx < 0) return;
+  personas[currentPersonaIdx].moves[mi][listName].splice(pi, 1);
+  savePersonas();
+  renderMovePassives(mi, listName);
+}
+
+function esc(s) { return (s||'').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+
+// ─── Lobby / WebSocket ──────────────────────────────────────────────
+function connectToServer() {
+  const addr = document.getElementById('lobby-addr').value.trim();
+  const username = document.getElementById('lobby-username').value.trim();
+  if (!username) { toast('Enter a name'); return; }
+  if (activePersonaIdx < 0 || !personas[activePersonaIdx]) {
+    toast('Set an active persona in the Workshop first'); return;
+  }
+
+  document.getElementById('conn-status').textContent = 'Connecting...';
+  try {
+    ws = new WebSocket(addr);
+  } catch(e) {
+    toast('Invalid address');
+    return;
+  }
+
+  ws.onopen = () => {
+    document.getElementById('conn-status').textContent = 'Connected';
+    document.getElementById('btn-create-fight').disabled = false;
+    ws.send(JSON.stringify({
+      type: 'register',
+      username,
+      persona: personas[activePersonaIdx]
+    }));
+  };
+
+  ws.onmessage = (e) => {
+    let msg;
+    try { msg = JSON.parse(e.data); } catch(err) { return; }
+    handleServerMessage(msg);
+  };
+
+  ws.onclose = () => {
+    document.getElementById('conn-status').textContent = 'Disconnected';
+    document.getElementById('btn-create-fight').disabled = true;
+    ws = null;
+    playerId = null;
+  };
+
+  ws.onerror = () => {
+    toast('Connection failed');
+    document.getElementById('conn-status').textContent = 'Error';
+  };
+}
+
+function handleServerMessage(msg) {
+  switch (msg.type) {
+    case 'connected':
+      playerId = msg.playerId;
+      break;
+    case 'registered':
+      playerId = msg.playerId;
+      document.getElementById('active-persona-label').textContent =
+        'Playing as: ' + personas[activePersonaIdx]?.name;
+      break;
+    case 'fight_list':
+      renderFightList(msg.fights);
+      break;
+    case 'joined_fight':
+      currentFightId = msg.fightId;
+      showScreen('fight');
+      break;
+    case 'left_fight':
+      currentFightId = null;
+      fightState = null;
+      showScreen('lobby');
+      break;
+    case 'fight_ended':
+      currentFightId = null;
+      fightState = null;
+      toast(msg.reason || 'Fight ended');
+      showScreen('lobby');
+      break;
+    case 'fight_state':
+      fightState = msg.state;
+      renderFight();
+      break;
+    case 'your_turn_declare':
+      myDeclTurn = { slotIndex: msg.slotIndex, speedValue: msg.speedValue };
+      renderFight();
+      break;
+    case 'error':
+      toast(msg.message);
+      break;
+  }
+}
+
+function leaveLobby() {
+  if (ws) { ws.close(); ws = null; }
+  showScreen('menu');
+}
+
+function updateLobbyUI() {
+  const label = document.getElementById('active-persona-label');
+  if (activePersonaIdx >= 0 && personas[activePersonaIdx]) {
+    label.textContent = 'Active: ' + personas[activePersonaIdx].name;
+  } else {
+    label.textContent = 'No active persona';
+  }
+}
+
+function renderFightList(fights) {
+  const el = document.getElementById('lobby-fights');
+  const empty = document.getElementById('lobby-empty');
+  if (!fights || fights.length === 0) {
+    empty.style.display = 'block';
+    empty.textContent = 'No fights available. Create one!';
+    el.innerHTML = '';
+    return;
+  }
+  empty.style.display = 'none';
+  el.innerHTML = '';
+  fights.forEach(f => {
+    const div = document.createElement('div');
+    div.className = 'fight-item';
+    div.innerHTML = `
+      <div>
+        <span style="color:#aaa;">${esc(f.name)}</span>
+        <span class="muted small"> — ${f.host} — ${f.count}/6 — ${f.phase}</span>
+      </div>
+      <button onclick="joinFight('${f.id}')" style="font-size:10px;">Join</button>
+    `;
+    el.appendChild(div);
+  });
+}
+
+function createFight() {
+  if (!ws) return;
+  const name = document.getElementById('fight-name-input').value.trim() || 'Unnamed Fight';
+  ws.send(JSON.stringify({ type: 'create_fight', name }));
+}
+
+function joinFight(fightId) {
+  if (!ws) return;
+  ws.send(JSON.stringify({ type: 'join_fight', fightId }));
+}
+
+function leaveFight() {
+  if (!ws) return;
+  ws.send(JSON.stringify({ type: 'leave_fight' }));
+}
+
+// ─── Fight Room Rendering ────────────────────────────────────────────
+function renderFight() {
+  if (!fightState) return;
+
+  // Header
+  document.getElementById('fight-title').textContent = fightState.name;
+  document.getElementById('fight-round').textContent =
+    fightState.round > 0 ? `Round ${fightState.round}` : '';
+  document.getElementById('fight-phase').textContent = fightState.phase.replace(/_/g, ' ');
+
+  // Participant cards
+  renderSide('left');
+  renderSide('right');
+
+  // Combat log
+  renderCombatLog();
+
+  // Actions
+  renderActions();
+}
+
+function renderSide(side) {
+  const el = document.getElementById('cards-' + side);
+  el.innerHTML = '';
+  if (!fightState) return;
+
+  for (const [pid, p] of Object.entries(fightState.participants)) {
+    if (p.side !== side) continue;
+    el.appendChild(createParticipantCard(pid, p));
+  }
+}
+
+function createParticipantCard(pid, p) {
+  const div = document.createElement('div');
+  div.className = 'participant-card' + (!p.alive ? ' dead' : '') + (p.staggered ? ' staggered' : '');
+
+  const hpPct = p.maxHP > 0 ? (p.currentHP / p.maxHP * 100) : 0;
+  const hpClass = hpPct > 50 ? 'hp-fill' : hpPct > 25 ? 'hp-fill low' : 'hp-fill critical';
+  const stgPct = p.staggerThreshold > 0 ? (p.currentStagger / p.staggerThreshold * 100) : 0;
+
+  let statusHtml = '';
+  for (const [name, count] of Object.entries(p.statusEffects)) {
+    if (count > 0) {
+      statusHtml += `<span class="status-badge">${name} ${count}</span>`;
+    }
+  }
+
+  let statusTag = '';
+  if (!p.alive) statusTag = '<span class="status-tag" style="color:#866;">DEAD</span>';
+  else if (p.staggered) statusTag = '<span class="status-tag" style="color:#886;">STAGGERED</span>';
+  else if (p.skipThisTurn) statusTag = '<span class="status-tag" style="color:#886;">RECOVERING</span>';
+
+  // Speed dice display
+  let speedHtml = '';
+  if (p.speedDice && p.speedDice.length > 0 && fightState.phase !== 'waiting') {
+    speedHtml = `<div class="muted small" style="margin-top:2px;">Speed: [${p.speedDice.join(', ')}]</div>`;
+  }
+
+  // Declaration display
+  let declHtml = '';
+  if (p.declarations && fightState.phase !== 'waiting') {
+    const filled = p.declarations.filter(d => d);
+    if (filled.length > 0) {
+      declHtml = '<div class="muted small" style="margin-top:2px;">Decl: ' +
+        p.declarations.map((d, i) => {
+          if (!d) return `slot${i+1}:--`;
+          const tname = fightState.participants[d.targetId]?.username || '?';
+          return `${d.moveName}→${tname}`;
+        }).join(', ') + '</div>';
+    }
+  }
+
+  // Side switch
+  const sideBtn = (pid === playerId && p.alive) ?
+    `<button onclick="switchSide()" style="font-size:9px;padding:1px 4px;">Switch Side</button>` : '';
+
+  // Proceed indicator
+  let proceedIndicator = '';
+  if (fightState.phase === 'ready_check') {
+    proceedIndicator = p.proceeded ?
+      '<span class="small" style="color:#6a8;">Ready</span>' :
+      '<span class="small" style="color:#886;">Waiting</span>';
+  }
+
+  div.innerHTML = `
+    <div class="pc-name">
+      ${esc(p.personaName)} <span class="muted small">(${esc(p.username)})</span>
+      ${p.isHost ? '<span class="host-tag">[host]</span>' : ''}
+      ${statusTag} ${proceedIndicator} ${sideBtn}
+    </div>
+    <div class="bar-container" title="HP: ${p.currentHP}/${p.maxHP}">
+      <div class="${hpClass}" style="width:${hpPct}%"></div>
+      <div class="bar-label">${p.currentHP}/${p.maxHP}</div>
+    </div>
+    <div class="bar-container" title="Stagger: ${p.currentStagger}/${p.staggerThreshold}">
+      <div class="stagger-fill" style="width:${stgPct}%"></div>
+      <div class="bar-label">${p.currentStagger}/${p.staggerThreshold}</div>
+    </div>
+    <div class="status-row">${statusHtml}</div>
+    ${speedHtml}
+    ${declHtml}
+  `;
+  return div;
+}
+
+function switchSide() {
+  if (!ws || !fightState || !playerId) return;
+  const current = fightState.participants[playerId]?.side;
+  ws.send(JSON.stringify({ type: 'pick_side', side: current === 'left' ? 'right' : 'left' }));
+}
+
+// ─── Combat Log ──────────────────────────────────────────────────────
+function renderCombatLog() {
+  const el = document.getElementById('fight-log');
+  if (!fightState) { el.innerHTML = ''; return; }
+
+  el.innerHTML = '';
+  (fightState.combatLog || []).forEach(entry => {
+    const div = document.createElement('div');
+    div.className = 'log-entry';
+    if (entry.startsWith('──')) div.className += ' round-header';
+    else if (entry.includes('damage')) div.className += ' damage';
+    else if (entry.includes('defeated') || entry.includes('☠')) div.className += ' death';
+    else if (entry.includes('===') || entry.includes('!!')) div.className += ' highlight';
+    div.textContent = entry;
+    el.appendChild(div);
+  });
+  el.scrollTop = el.scrollHeight;
+}
+
+// ─── Action Panel ────────────────────────────────────────────────────
+function renderActions() {
+  const el = document.getElementById('action-content');
+  if (!fightState || !playerId) { el.innerHTML = ''; return; }
+
+  const me = fightState.participants[playerId];
+  const isHost = fightState.hostId === playerId;
+  let html = '';
+
+  switch (fightState.phase) {
+    case 'waiting':
+    case 'round_end':
+      if (isHost) {
+        html += '<button onclick="startRound()">Start Round</button>';
+        html += '<button onclick="resetFight()">Reset Fight</button>';
+      } else {
+        html += '<span class="muted">Waiting for host to start round...</span>';
+      }
+      break;
+
+    case 'speed':
+      html += '<span class="muted">Speed dice rolling...</span>';
+      break;
+
+    case 'declaration':
+      if (myDeclTurn && me && me.alive) {
+        html = renderDeclarationUI(me);
+      } else {
+        // Check if it's someone else's turn
+        const curr = fightState.declarationOrder[fightState.currentDeclarationIdx];
+        if (curr) {
+          const declarer = fightState.participants[curr.playerId];
+          html += `<span class="muted">Waiting for ${declarer?.username || '?'} to declare (slot ${curr.slotIndex + 1}, speed ${curr.speedValue})...</span>`;
+        }
+      }
+      break;
+
+    case 'ready_check':
+      if (me && me.alive && !me.proceeded) {
+        html += '<button onclick="submitProceed()">Proceed</button>';
+      } else if (me && me.proceeded) {
+        html += '<span class="muted">Waiting for others...</span>';
+      }
+      if (isHost) {
+        html += ' <button onclick="forceProc()">Force Proceed (Host)</button>';
+      }
+      break;
+
+    case 'resolution':
+      html += '<span class="muted">Resolving clashes...</span>';
+      break;
+  }
+
+  el.innerHTML = html;
+}
+
+function renderDeclarationUI(me) {
+  const moves = me.moves || [];
+  const targets = [];
+  for (const [pid, p] of Object.entries(fightState.participants)) {
+    if (p.alive && pid !== playerId) {
+      targets.push({ id: pid, name: p.username });
+    }
+  }
+
+  let moveOpts = moves.map((m, i) =>
+    `<option value="${i}">${esc(m.name)} (${m.type}, ${m.diceCount}d)</option>`
+  ).join('');
+
+  let targetOpts = targets.map(t =>
+    `<option value="${t.id}">${esc(t.name)}</option>`
+  ).join('');
+
+  return `
+    <span class="muted" style="margin-right:6px;">Slot ${myDeclTurn.slotIndex + 1} (spd ${myDeclTurn.speedValue}):</span>
+    <select id="decl-move">${moveOpts}</select>
+    <span class="muted">→</span>
+    <select id="decl-target">${targetOpts}</select>
+    <button onclick="submitDeclaration()">Declare</button>
+  `;
+}
+
+function submitDeclaration() {
+  if (!ws || !myDeclTurn) return;
+  const moveIdx = parseInt(document.getElementById('decl-move').value);
+  const targetId = document.getElementById('decl-target').value;
+  if (isNaN(moveIdx) || !targetId) { toast('Select move and target'); return; }
+
+  ws.send(JSON.stringify({
+    type: 'declare_move',
+    slotIndex: myDeclTurn.slotIndex,
+    moveIndex: moveIdx,
+    targetId
+  }));
+  myDeclTurn = null;
+}
+
+function submitProceed() {
+  if (!ws) return;
+  ws.send(JSON.stringify({ type: 'proceed' }));
+}
+
+function forceProc() {
+  if (!ws) return;
+  ws.send(JSON.stringify({ type: 'force_proceed' }));
+}
+
+function startRound() {
+  if (!ws) return;
+  ws.send(JSON.stringify({ type: 'start_round' }));
+}
+
+function resetFight() {
+  if (!ws) return;
+  if (!confirm('Reset fight? All HP, stagger, and status will be restored.')) return;
+  ws.send(JSON.stringify({ type: 'reset_fight' }));
+}
+
+// ─── Init ────────────────────────────────────────────────────────────
+(async () => {
+  await loadPersonas();
+})();
+</script>
+</body>
+</html>
